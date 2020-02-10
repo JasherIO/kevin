@@ -1,4 +1,4 @@
-const { RichEmbed } = require('discord.js');
+const { MessageEmbed } = require('discord.js');
 const { Command } = require('discord.js-commando');
 
 const status = {
@@ -7,23 +7,26 @@ const status = {
   done: 0x48BB78
 }
 
-// TODO
-// queue + standby < 6 -> RED 
-// queue + standby >= 6 -> YELLOW
-// queue >= 6 -> GREEN 
-const getColor = (count) => {
-  if (count < 3)
-    return status.started;
-  
-  if (count < 6)
-    return status.progress;
-  
-  return status.done;
-}
+const DAY = 24*60*60;
+const WEEK = DAY*7;
 
 const Q = '🇶';
 const S = '🇸';
 const emojis = [Q, S];
+
+const getColor = (queueSize, standbySize) => {
+  if (queueSize >= 6)
+    return status.done;
+  
+  if (queueSize + standbySize >= 6)
+    return status.progress;
+
+  return status.started;
+}
+
+const toMentions = (users) => {
+  return users.map(user => `<@${user.id}>`);
+}
 
 module.exports = class QueueCommand extends Command {
 	constructor(client) {
@@ -41,35 +44,59 @@ module.exports = class QueueCommand extends Command {
 
 	async run(message) {
 
-    const embed = new RichEmbed()
+    const embed = new MessageEmbed()
       .setTitle('Queue')
-      .setColor(status.started)
-      .addField('Confirmed', `<@${message.author.id}>`);
+      .setColor(status.started);
 
     try {
       const embedMessage = await message.embed(embed);
 
       const filter = (reaction) => emojis.includes(reaction.emoji.name);
-      const collector = embedMessage.createReactionCollector(filter);
-      collector.on('collect', async (reaction, collector) => {
-        const count = reaction.count-1;
-        const prevEmbed = reaction.message.embeds[0];
+      const collector = embedMessage.createReactionCollector(filter, { time: WEEK, dispose: true });
+      
+      collector.on('collect', async (reaction) => {
+        const queueReaction = embedMessage.reactions.find(r => r.emoji.name === Q);
+        const queueUsers = queueReaction ? queueReaction.users.filter(u => !u.bot) : {};
 
-        const e = new RichEmbed()
-          .setTitle(prevEmbed.title)
-          .setColor(getColor(count));
+        const standbyReaction = embedMessage.reactions.find(r => r.emoji.name === S);
+        const standbyUsers = standbyReaction ? standbyReaction.users.filter(u => !u.bot) : {};
 
-        const users = reaction.users.filter(user => !user.bot);
-        const mentions = users.map(user => `<@${user.id}>`);
+        const queueSize = queueUsers.size;
+        const standbySize = standbyUsers.size;
 
-        if (reaction.emoji.name === Q) {
-          if (mentions.length > 0)
-            e.addField('Confirmed', mentions)
-          
-          reaction.message.edit('', { embed: e });
-        }
+        const e = new MessageEmbed(embed)
+          .setColor(getColor(queueSize, standbySize));
+
+        if (queueUsers.size > 0)
+          e.addField('Confirmed', toMentions(queueUsers));
+
+        if (standbyUsers.size > 0)
+          e.addField('Standby', toMentions(standbyUsers));
+
+        reaction.message.edit('', { embed: e });
       });
-      collector.on('end', collected => console.log(`Collected ${collected.size} items`));
+
+      collector.on('remove', (reaction) => {
+        const queueReaction = embedMessage.reactions.find(r => r.emoji.name === Q);
+        const queueUsers = queueReaction ? queueReaction.users.filter(u => !u.bot) : {};
+
+        const standbyReaction = embedMessage.reactions.find(r => r.emoji.name === S);
+        const standbyUsers = standbyReaction ? standbyReaction.users.filter(u => !u.bot) : {};
+
+        const queueSize = queueUsers.size;
+        const standbySize = standbyUsers.size;
+
+        const e = new MessageEmbed(embed)
+          .setColor(getColor(queueSize, standbySize));
+
+        if (queueUsers.size > 0)
+          e.addField('Confirmed', toMentions(queueUsers));
+
+        if (standbyUsers.size > 0)
+          e.addField('Standby', toMentions(standbyUsers));
+
+        reaction.message.edit('', { embed: e });
+      });
 
       await embedMessage.react(Q);
       await embedMessage.react(S);
