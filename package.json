@@ -1,0 +1,17 @@
+{
+  "name": "kevin",
+  "version": "1.0.0",
+  "description": "RLC & Friends queue and role reactions",
+  "main": "index.js",
+  "scripts": {
+    "start": "node bot.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Joshua C. Willis",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^11.5.1",
+    "discord.js-commando": "^0.10.0",
+    "sqlite": "^3.0.3"
+  }
+}
