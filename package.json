@@ -12,6 +12,7 @@
   "dependencies": {
     "discord.js": "github:discordjs/discord.js",
     "discord.js-commando": "github:discordjs/Commando",
+    "dotenv": "^8.2.0",
     "sqlite": "^3.0.3"
   }
 }
