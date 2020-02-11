@@ -14,11 +14,21 @@ const Q = '🇶';
 const S = '🇸';
 const emojis = [Q, S];
 
-const getColor = (queueSize, standbySize) => {
-  if (queueSize >= 6)
+const gameSize = {
+  CSGO: 10,
+  default: 6,
+  RL: 6,
+  R6: 10,
+  TTS: 4
+}
+
+const getColor = (game, queueSize, standbySize) => {
+  const size = game in gameSize ? gameSize[game] : gameSize.default;
+
+  if (queueSize >= size)
     return status.done;
   
-  if (queueSize + standbySize >= 6)
+  if (queueSize + standbySize >= size)
     return status.progress;
 
   return status.started;
@@ -26,6 +36,29 @@ const getColor = (queueSize, standbySize) => {
 
 const toMentions = (users) => {
   return users.map(user => `<@${user.id}>`);
+}
+
+const updateEmbed = (template, reactions, game) => {
+  const e = new MessageEmbed(template);
+
+  const queueReaction = reactions.find(r => r.emoji.name === Q);
+  const queueUsers = queueReaction ? queueReaction.users.filter(u => !u.bot) : {};
+  const queueSize = queueUsers.size;
+
+  const standbyReaction = reactions.find(r => r.emoji.name === S);
+  const standbyUsers = standbyReaction ? standbyReaction.users.filter(u => !u.bot) : {};
+  const standbySize = standbyUsers.size;
+
+  const color = getColor(game, queueSize, standbySize);
+  e.setColor(color);
+
+  if (queueSize > 0)
+    e.addField('Confirmed', toMentions(queueUsers), true);
+
+  if (standbySize > 0)
+    e.addField('Standby', toMentions(standbyUsers), true);
+
+  return e;
 }
 
 module.exports = class QueueCommand extends Command {
@@ -38,64 +71,45 @@ module.exports = class QueueCommand extends Command {
 			description: 'Toggles user queue status.',
 			details: 'Toggles user queue status.',
       examples: ['q', 'queue'],
-      guildOnly: true
+      guildOnly: true,
+      args: [
+				{
+          key: 'game',
+          prompt: 'What game?',
+          default: '',
+					type: 'role'
+        },
+        {
+          key: 'time',
+          prompt: 'What time?',
+          default: '',
+					type: 'string'
+        }
+			]
 		});
 	}
 
-	async run(message) {
-
-    const embed = new MessageEmbed()
-      .setTitle('Queue')
+	async run(message, args) {
+    const game = args.game.name || '';
+    const time = args.time || '';
+    const title = !game && !time ? 'Queue' :`${game} ${time}`;
+    
+    const template = new MessageEmbed()
+      .setTitle(title)
       .setColor(status.started);
 
     try {
-      const embedMessage = await message.embed(embed);
+      const embedMessage = await message.embed(template);
 
       const filter = (reaction) => emojis.includes(reaction.emoji.name);
       const collector = embedMessage.createReactionCollector(filter, { time: WEEK, dispose: true });
       
       collector.on('collect', async (reaction) => {
-        const queueReaction = embedMessage.reactions.find(r => r.emoji.name === Q);
-        const queueUsers = queueReaction ? queueReaction.users.filter(u => !u.bot) : {};
-
-        const standbyReaction = embedMessage.reactions.find(r => r.emoji.name === S);
-        const standbyUsers = standbyReaction ? standbyReaction.users.filter(u => !u.bot) : {};
-
-        const queueSize = queueUsers.size;
-        const standbySize = standbyUsers.size;
-
-        const e = new MessageEmbed(embed)
-          .setColor(getColor(queueSize, standbySize));
-
-        if (queueUsers.size > 0)
-          e.addField('Confirmed', toMentions(queueUsers));
-
-        if (standbyUsers.size > 0)
-          e.addField('Standby', toMentions(standbyUsers));
-
-        reaction.message.edit('', { embed: e });
+        reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions, game) });
       });
 
       collector.on('remove', (reaction) => {
-        const queueReaction = embedMessage.reactions.find(r => r.emoji.name === Q);
-        const queueUsers = queueReaction ? queueReaction.users.filter(u => !u.bot) : {};
-
-        const standbyReaction = embedMessage.reactions.find(r => r.emoji.name === S);
-        const standbyUsers = standbyReaction ? standbyReaction.users.filter(u => !u.bot) : {};
-
-        const queueSize = queueUsers.size;
-        const standbySize = standbyUsers.size;
-
-        const e = new MessageEmbed(embed)
-          .setColor(getColor(queueSize, standbySize));
-
-        if (queueUsers.size > 0)
-          e.addField('Confirmed', toMentions(queueUsers));
-
-        if (standbyUsers.size > 0)
-          e.addField('Standby', toMentions(standbyUsers));
-
-        reaction.message.edit('', { embed: e });
+        reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions, game) });
       });
 
       await embedMessage.react(Q);
