@@ -8,6 +8,14 @@ const client = new Client({
 	owner: process.env.ownerId
 });
 
+client.on('message', message => {
+  if (message.content.includes('peen') && !message.author.bot)
+    message.channel.send("`Please think of Stump before waving your peen around`");
+    
+  if (message.content.includes('bing') && !message.author.bot)
+    message.channel.send("`Bong!`");
+})
+
 client.registry
   .registerGroups([ [ 'queue', 'Queue' ], [ 'fun', 'Fun' ] ])
   .registerDefaults()
