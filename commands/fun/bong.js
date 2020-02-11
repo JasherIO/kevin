@@ -4,14 +4,14 @@ module.exports = class BingCommand extends Command {
 	constructor(client) {
 		super(client, {
 			name: 'bing',
-			group: 'util',
+			group: 'fun',
 			memberName: 'bing',
 			description: 'Bong!',
 			details: 'Bong!'
 		});
 	}
 
-	async run(message, args) {
+	async run(message) {
 		return message.reply('Bong!');
 	}
 };

@@ -9,7 +9,7 @@ const client = new Client({
 });
 
 client.registry
-  .registerGroups([ [ 'queue', 'Queue' ] ])
+  .registerGroups([ [ 'queue', 'Queue' ], [ 'fun', 'Fun' ] ])
   .registerDefaults()
   .registerCommandsIn(path.join(__dirname, 'commands'));
 
