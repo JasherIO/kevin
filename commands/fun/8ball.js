@@ -27,7 +27,7 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
-module.exports = class BingCommand extends Command {
+module.exports = class EightBallCommand extends Command {
 	constructor(client) {
 		super(client, {
 			name: '8ball',
