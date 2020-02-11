@@ -15,10 +15,10 @@ const S = '🇸';
 const emojis = [Q, S];
 
 const gameSize = {
-  CSGO: 10,
+  CSGO: 5,
   default: 6,
   RL: 6,
-  R6: 10,
+  R6: 5,
   TTS: 4
 }
 
