@@ -53,10 +53,10 @@ const updateEmbed = (template, reactions, game) => {
   e.setColor(color);
 
   if (queueSize > 0)
-    e.addField('Confirmed', toMentions(queueUsers), true);
+    e.addField('Confirmed', toMentions(queueUsers));
 
   if (standbySize > 0)
-    e.addField('Standby', toMentions(standbyUsers), true);
+    e.addField('Standby', toMentions(standbyUsers));
 
   return e;
 }
