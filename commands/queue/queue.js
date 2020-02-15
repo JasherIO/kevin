@@ -104,7 +104,7 @@ module.exports = class QueueCommand extends Command {
       const filter = (reaction) => emojis.includes(reaction.emoji.name);
       const collector = embedMessage.createReactionCollector(filter, { time: WEEK, dispose: true });
       
-      collector.on('collect', async (reaction) => {
+      collector.on('collect', (reaction) => {
         reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions, game) });
       });
 
