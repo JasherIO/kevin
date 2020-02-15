@@ -42,11 +42,11 @@ const updateEmbed = (template, reactions, game) => {
   const e = new MessageEmbed(template);
 
   const queueReaction = reactions.find(r => r.emoji.name === Q);
-  const queueUsers = queueReaction ? queueReaction.users.filter(u => !u.bot) : {};
+  const queueUsers = queueReaction ? queueReaction.users.cache.filter(u => !u.bot) : {};
   const queueSize = queueUsers.size;
 
   const standbyReaction = reactions.find(r => r.emoji.name === S);
-  const standbyUsers = standbyReaction ? standbyReaction.users.filter(u => !u.bot) : {};
+  const standbyUsers = standbyReaction ? standbyReaction.users.cache.filter(u => !u.bot) : {};
   const standbySize = standbyUsers.size;
 
   const color = getColor(game, queueSize, standbySize);
@@ -105,11 +105,11 @@ module.exports = class QueueCommand extends Command {
       const collector = embedMessage.createReactionCollector(filter, { time: WEEK, dispose: true });
       
       collector.on('collect', (reaction) => {
-        reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions, game) });
+        reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions.cache, game) });
       });
 
       collector.on('remove', (reaction) => {
-        reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions, game) });
+        reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions.cache, game) });
       });
 
       await embedMessage.react(Q);
