@@ -10,7 +10,7 @@ const autoReplies = {
 }
 
 const client = new Client({
-	owner: process.env.ownerId
+	owner: process.env.OWNER_ID
 });
 
 client.on('message', message => {
@@ -34,4 +34,4 @@ client.setProvider(
     sqlite.open(path.join(__dirname, 'settings.sqlite3')).then(db => new SQLiteProvider(db))
 ).catch(console.error);
 
-client.login(process.env.token);
+client.login(process.env.TOKEN);
