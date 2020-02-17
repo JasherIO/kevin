@@ -5,8 +5,8 @@ const sqlite = require('sqlite');
 require('dotenv').config()
 
 const autoReplies = {
-  peen: "`Please think of Stump before waving your peen around`",
-  bing: "`Bong!`"
+  peen: { pattern: /(^|\s+)peen\s*/im, response: "`Please think of Stump before waving your peen around`" },
+  bing: { pattern: /(^|\s+)bing\s*/im, response: "`Bong!`" }
 }
 
 const client = new Client({
@@ -18,10 +18,11 @@ client.on('message', message => {
     return;
 
   Object.keys(autoReplies).forEach((key) => {
-    if (!message.content.includes(key))
+    const regex = new RegExp(autoReplies[key].pattern);
+    if (!regex.test(message.content))
       return;
 
-    message.channel.send(autoReplies[key]);
+    message.channel.send(autoReplies[key].response);
   })
 })
 
