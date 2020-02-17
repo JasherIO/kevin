@@ -7,9 +7,6 @@ const status = {
   done: 0x48BB78
 }
 
-const DAY = 24*60*60;
-const WEEK = DAY*7;
-
 const Q = '🇶';
 const S = '🇸';
 const emojis = [Q, S];
@@ -53,10 +50,10 @@ const updateEmbed = (template, reactions, game) => {
   e.setColor(color);
 
   if (queueSize > 0)
-    e.addField('Confirmed', toMentions(queueUsers));
+    e.addField(`Confirmed (${queueSize})`, toMentions(queueUsers));
 
   if (standbySize > 0)
-    e.addField('Standby', toMentions(standbyUsers));
+    e.addField(`Standby (${standbySize})`, toMentions(standbyUsers));
 
   return e;
 }
@@ -102,7 +99,7 @@ module.exports = class QueueCommand extends Command {
       const embedMessage = await message.embed(template);
 
       const filter = (reaction) => emojis.includes(reaction.emoji.name);
-      const collector = embedMessage.createReactionCollector(filter, { time: WEEK, dispose: true });
+      const collector = embedMessage.createReactionCollector(filter, { dispose: true });
       
       collector.on('collect', (reaction) => {
         reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions.cache, game) });
