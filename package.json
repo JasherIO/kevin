@@ -10,6 +10,7 @@
   "author": "Joshua C. Willis",
   "license": "MIT",
   "dependencies": {
+    "chrono-node": "^2.1.8",
     "discord.js": "github:discordjs/discord.js",
     "discord.js-commando": "github:discordjs/Commando",
     "dotenv": "^8.2.0",

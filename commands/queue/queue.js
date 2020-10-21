@@ -1,62 +1,9 @@
-const { MessageEmbed } = require('discord.js');
+// !q [title] [time] [partySize]
+// !rocketleague [time]
+// !amongus [time]
+
 const { Command } = require('discord.js-commando');
-
-const status = {
-  started: 0xF56565,
-  progress: 0xECC94B,
-  done: 0x48BB78
-}
-
-const Q = '🇶';
-const S = '🇸';
-const emojis = [Q, S];
-
-const gameSize = {
-  CSGO: 5,
-  default: 6,
-  RL: 6,
-  R6: 5,
-  TTS: 4
-}
-
-const getColor = (game, queueSize, standbySize) => {
-  const size = game in gameSize ? gameSize[game] : gameSize.default;
-
-  if (queueSize >= size)
-    return status.done;
-  
-  if (queueSize + standbySize >= size)
-    return status.progress;
-
-  return status.started;
-}
-
-const toMentions = (users) => {
-  return users.map(user => `<@${user.id}>`);
-}
-
-const updateEmbed = (template, reactions, game) => {
-  const e = new MessageEmbed(template);
-
-  const queueReaction = reactions.find(r => r.emoji.name === Q);
-  const queueUsers = queueReaction ? queueReaction.users.cache.filter(u => !u.bot) : {};
-  const queueSize = queueUsers.size;
-
-  const standbyReaction = reactions.find(r => r.emoji.name === S);
-  const standbyUsers = standbyReaction ? standbyReaction.users.cache.filter(u => !u.bot) : {};
-  const standbySize = standbyUsers.size;
-
-  const color = getColor(game, queueSize, standbySize);
-  e.setColor(color);
-
-  if (queueSize > 0)
-    e.addField(`Confirmed (${queueSize})`, toMentions(queueUsers));
-
-  if (standbySize > 0)
-    e.addField(`Standby (${standbySize})`, toMentions(standbyUsers));
-
-  return e;
-}
+const { createQueueEmbed } = require("../../common/createQueueEmbed");
 
 module.exports = class QueueCommand extends Command {
 	constructor(client) {
@@ -64,59 +11,39 @@ module.exports = class QueueCommand extends Command {
 			name: 'queue',
 			aliases: ['q'],
 			group: 'queue',
-			memberName: 'queue',
-			description: 'Toggles user queue status.',
-			details: 'Toggles user queue status.',
-      examples: ['q', 'queue'],
+			memberName: 'queueu',
+			description: 'Create a queue.',
+			details: 'Create a queue.',
+      examples: ['`!q`', '`!queue`', '`!queue "DnD" "today 5PM EDT" 5`'],
       guildOnly: true,
       args: [
-				{
-          key: 'game',
-          prompt: 'What game?',
-          default: '',
-					type: 'role'
+        {
+          key: 'title',
+          prompt: 'What?',
+          default: 'Queue',
+					type: 'string'
         },
         {
           key: 'time',
-          prompt: 'What time?',
+          prompt: 'When?',
           default: '',
 					type: 'string'
+        },
+        {
+          key: 'partySize',
+          prompt: 'Party size?',
+          default: 0,
+					type: 'integer'
         }
 			]
 		});
 	}
 
 	async run(message, args) {
-    const game = args.game.name || '';
-    const time = args.time || '';
-    const title = !game && !time ? 'Queue' :`${game} ${time}`;
-    
-    const template = new MessageEmbed()
-      .setTitle(title)
-      .setColor(status.started);
+    const title = args.title || 'Queue';
+    const time = args.time || new Date(Date.now());
+    const partySize = args.partySize || 0;
 
-    try {
-      const embedMessage = await message.embed(template);
-
-      const filter = (reaction) => emojis.includes(reaction.emoji.name);
-      const collector = embedMessage.createReactionCollector(filter, { dispose: true });
-      
-      collector.on('collect', (reaction) => {
-        reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions.cache, game) });
-      });
-
-      collector.on('remove', (reaction) => {
-        reaction.message.edit('', { embed: updateEmbed(template, embedMessage.reactions.cache, game) });
-      });
-
-      await embedMessage.react(Q);
-      await embedMessage.react(S);
-
-      return embedMessage;
-    } catch (err) {
-      console.error(err);
-    }
-
-    return message;
+    return createQueueEmbed({ message, title, date: time, partySize });
 	}
 };

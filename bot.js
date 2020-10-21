@@ -1,12 +1,12 @@
 const { Client, SQLiteProvider } = require('discord.js-commando');
 const path = require('path');
 const sqlite = require('sqlite');
+const DatetimeArgumentType = require('./types/datetime')
 
 require('dotenv').config()
 
 const autoReplies = {
-  peen: { pattern: /(^|\s+)peen\s*/im, response: "`Please think of Stump before waving your peen around`" },
-  bing: { pattern: /(^|\s+)bing\s*/im, response: "`Bong!`" }
+  bing: { pattern: /(^|\s+)bing($|\s+)/im, response: "`Bong!`" }
 }
 
 const client = new Client({
@@ -29,6 +29,7 @@ client.on('message', message => {
 client.registry
   .registerGroups([ ['queue', 'Queue'], ['fun', 'Fun'] ])
   .registerDefaults()
+  .registerType(DatetimeArgumentType)
   .registerCommandsIn(path.join(__dirname, 'commands'));
 
 client.setProvider(
