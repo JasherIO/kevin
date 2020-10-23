@@ -11,7 +11,7 @@ module.exports = class QueueCommand extends Command {
 			name: 'queue',
 			aliases: ['q'],
 			group: 'queue',
-			memberName: 'queueu',
+			memberName: 'queue',
 			description: 'Create a queue.',
 			details: 'Create a queue.',
       examples: ['`!q`', '`!queue`', '`!queue "DnD" "today 5PM EDT" 5`'],
@@ -27,7 +27,7 @@ module.exports = class QueueCommand extends Command {
           key: 'time',
           prompt: 'When?',
           default: '',
-					type: 'string'
+					type: 'datetime'
         },
         {
           key: 'partySize',
@@ -35,7 +35,7 @@ module.exports = class QueueCommand extends Command {
           default: 0,
 					type: 'integer'
         }
-			]
+      ]
 		});
 	}
 
