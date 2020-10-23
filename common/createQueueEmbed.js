@@ -6,56 +6,72 @@ const  { C, S } = require("./emojis");
 const TWO_WEEKS_MS = 1209600000;
 const EMOJIS = [C, S];
 
-const toMentions = (users) => {
+const getReaction = ({ reactions, emoji }) => {
+  return reactions.find(reaction => reaction.emoji.name === emoji.name);
+}
+
+const getReactionUsers = ({ reactions, emoji }) => {
+  const reaction = getReaction({ reactions, emoji });
+  return !reaction ? new Map() : reaction.users.cache.filter(user => !user.bot);
+}
+
+const getReactionSize = ({ reactions, emoji }) => {
+  const users = getReactionUsers({ reactions, emoji });
+  return !users ? 0 : users.size;
+}
+
+const toMentions = ({ users }) => {
   return users.map(user => `<@${user.id}>`);
 }
 
-const toColor = ({ confirmedSize, partySize }) => {
-  return confirmedSize < partySize ? QUEUE_START_COLOR : QUEUE_END_COLOR;
+const getFieldUpdate = ({ reactions, emoji, fieldName }) => {
+  const users = getReactionUsers({ reactions, emoji });
+  const mentions = toMentions({ users });
+  const size = getReactionSize({ reactions, emoji });
+
+  return {
+    name: `${fieldName} (${size})`,
+    value: size > 0 ? mentions : 'None',
+    inline: false
+  }
 }
 
-const updateEmbed = ({ template, reactions, partySize }) => {
-  const embed = new MessageEmbed(template);
+const updateEmbed = ({ embed, reactions, partySize }) => {
+  const confirmedField = getFieldUpdate({ reactions, emoji: { name: C }, fieldName: 'Confirmed' });
+  const standbyField = getFieldUpdate({ reactions, emoji: { name: S }, fieldName: 'Standby' });
+  
+  const confirmedSize = getReactionSize({ reactions, emoji: { name: C } });
+  const color = confirmedSize < partySize ? QUEUE_START_COLOR : QUEUE_END_COLOR;
 
-  const confirmedReaction = reactions.find(r => r.emoji.name === C);
-  const confirmedUsers = confirmedReaction ? confirmedReaction.users.cache.filter(u => !u.bot) : {};
-  const confirmedSize = confirmedUsers.size || 0;
-
-  const standbyReaction = reactions.find(r => r.emoji.name === S);
-  const standbyUsers = standbyReaction ? standbyReaction.users.cache.filter(u => !u.bot) : {};
-  const standbySize = standbyUsers.size || 0;
-
-  embed.setColor(toColor({ confirmedSize, partySize }));
-
-  const confirmedFieldIndex = embed.fields.findIndex(f => f.name.startsWith('Confirmed '));
-  embed.fields[confirmedFieldIndex] = {
-    ...embed.fields[confirmedFieldIndex],
-    name: `Confirmed (${confirmedSize})`,
-    value: confirmedSize > 0 ? toMentions(confirmedUsers) : 'None'
+  return {
+    ...embed,
+    color,
+    fields: [confirmedField, standbyField]
   }
-
-  const standbyFieldIndex = embed.fields.findIndex(f => f.name.startsWith('Standby '));
-  embed.fields[standbyFieldIndex] = {
-    ...embed.fields[standbyFieldIndex],
-    name: `Standby (${standbySize})`,
-    value: standbySize > 0 ? toMentions(standbyUsers) : 'None'
-  }
-
-  return embed;
 }
 
 const createQueueEmbed = async ({ message, title = 'Queue', date = new Date(Date.now()), partySize = 0 }) => {  
   const description = `${toEasternDate(date)}\n${toCentralEuropeanDate(date)}`;
-  const startColor = partySize > 0 ? QUEUE_START_COLOR : QUEUE_END_COLOR;
+  const color = partySize > 0 ? QUEUE_START_COLOR : QUEUE_END_COLOR;
 
-  const template = new MessageEmbed()
-    .setTitle(title)
-    .setDescription(description)
-    .setColor(startColor)
-    .addField('Confirmed (0)', 'None')
-    .addField('Standby (0)', 'None');
-
-  const embedMessage = await message.embed(template);
+  const embed = {
+    title,
+    description,
+    color,
+    fields: [
+      {
+        name: 'Confirmed (0)',
+        value: 'None',
+        inline: false
+      },
+      {
+        name: 'Standby (0)',
+        value: 'None',
+        inline: false
+      }
+    ]
+  }
+  const embedMessage = await message.embed(embed);
 
   const filter = (reaction) => EMOJIS.includes(reaction.emoji.name);
   const collector = embedMessage.createReactionCollector(filter, { dispose: true, time: TWO_WEEKS_MS });
@@ -64,14 +80,14 @@ const createQueueEmbed = async ({ message, title = 'Queue', date = new Date(Date
     if (user.bot)
       return;
 
-    reaction.message.edit('', { embed: updateEmbed({ template, reactions: embedMessage.reactions.cache, partySize }) });
+    reaction.message.edit('', { embed: updateEmbed({ embed, reactions: embedMessage.reactions.cache, partySize }) });
   });
 
   collector.on('remove', (reaction, user) => {
     if (user.bot)
       return;
 
-    reaction.message.edit('', { embed: updateEmbed({ template, reactions: embedMessage.reactions.cache, partySize }) });
+    reaction.message.edit('', { embed: updateEmbed({ embed, reactions: embedMessage.reactions.cache, partySize }) });
   });
 
   await embedMessage.react(C);
