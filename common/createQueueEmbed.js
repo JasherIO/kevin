@@ -1,4 +1,3 @@
-const { MessageEmbed } = require('discord.js');
 const { toCentralEuropeanDate, toEasternDate } = require("./dates");
 const { QUEUE_START_COLOR, QUEUE_END_COLOR } = require("./queueColors");
 const  { C, S } = require("./emojis");
@@ -6,58 +5,16 @@ const  { C, S } = require("./emojis");
 const TWO_WEEKS_MS = 1209600000;
 const EMOJIS = [C, S];
 
-const getReaction = ({ reactions, emoji }) => {
-  return reactions.find(reaction => reaction.emoji.name === emoji.name);
-}
-
-const getReactionUsers = ({ reactions, emoji }) => {
-  const reaction = getReaction({ reactions, emoji });
-  return !reaction ? new Map() : reaction.users.cache.filter(user => !user.bot);
-}
-
-const getReactionSize = ({ reactions, emoji }) => {
-  const users = getReactionUsers({ reactions, emoji });
-  return !users ? 0 : users.size;
-}
-
-const toMentions = ({ users }) => {
-  return users.map(user => `<@${user.id}>`);
-}
-
-const getFieldUpdate = ({ reactions, emoji, fieldName }) => {
-  const users = getReactionUsers({ reactions, emoji });
-  const mentions = toMentions({ users });
-  const size = getReactionSize({ reactions, emoji });
-
+const defaultEmbed = ({ color, title, description, author, timestamp }) => {
   return {
-    name: `${fieldName} (${size})`,
-    value: size > 0 ? mentions : 'None',
-    inline: false
-  }
-}
-
-const updateEmbed = ({ embed, reactions, partySize }) => {
-  const confirmedField = getFieldUpdate({ reactions, emoji: { name: C }, fieldName: 'Confirmed' });
-  const standbyField = getFieldUpdate({ reactions, emoji: { name: S }, fieldName: 'Standby' });
-  
-  const confirmedSize = getReactionSize({ reactions, emoji: { name: C } });
-  const color = confirmedSize < partySize ? QUEUE_START_COLOR : QUEUE_END_COLOR;
-
-  return {
-    ...embed,
     color,
-    fields: [confirmedField, standbyField]
-  }
-}
-
-const createQueueEmbed = async ({ message, title = 'Queue', date = new Date(Date.now()), partySize = 0 }) => {  
-  const description = `${toEasternDate(date)}\n${toCentralEuropeanDate(date)}`;
-  const color = partySize > 0 ? QUEUE_START_COLOR : QUEUE_END_COLOR;
-
-  const embed = {
     title,
-    description,
-    color,
+    description,    
+    footer: { 
+      text: `${author.username}`, 
+      iconURL: author.avatarURL() 
+    },
+    timestamp,
     fields: [
       {
         name: 'Confirmed (0)',
@@ -71,24 +28,84 @@ const createQueueEmbed = async ({ message, title = 'Queue', date = new Date(Date
       }
     ]
   }
+}
+
+const toMentions = ({ users }) => {
+  return users.map(user => `<@${user.id}>`).join('\n');
+}
+
+const getReactionUsers = ({ reaction }) => {
+  return !reaction ? new Map() : reaction.users.cache.filter(user => !user.bot);
+}
+
+const getReactionSize = ({ reaction }) => {
+  const users = getReactionUsers({ reaction });
+  return !users ? 0 : users.size;
+}
+
+const getFieldUpdate = ({ fieldName, mentions, size }) => {
+  return {
+    name: `${fieldName} (${size})`,
+    value: size > 0 ? mentions : 'None',
+    inline: false
+  }
+}
+
+const getEmbedUpdate = ({ reaction, partySize }) => {
+  const embed = reaction.message.embeds[0];
+  const confirmedField = embed.fields.find(field => field.name.startsWith('Confirmed '));
+  const standbyField = embed.fields.find(field => field.name.startsWith('Standby '));
+
+  const users = getReactionUsers({ reaction });
+  const mentions = toMentions({ users });
+  const size = getReactionSize({ reaction });
+
+  switch (reaction.emoji.name) {
+    case C:
+      const color = size < partySize ? QUEUE_START_COLOR : QUEUE_END_COLOR;
+      return {
+        ...embed,
+        color,
+        fields: [ getFieldUpdate({ fieldName: 'Confirmed', mentions, size }), standbyField ]
+      }
+    case S:
+      return {
+        ...embed,
+        fields: [confirmedField, getFieldUpdate({ fieldName: 'Standby', mentions, size })]
+      }
+    default:
+      return embed;
+  }
+}
+
+const update = ({ partySize }) => (reaction, user) => {
+  if (user.bot)
+    return;
+
+  const embed = getEmbedUpdate({ reaction, partySize });
+  reaction.message.edit('', { embed });
+}
+
+const startReactionCollector = ({ message, partySize }) => {
+  const filter = (reaction) => EMOJIS.includes(reaction.emoji.name);
+  const collector = message.createReactionCollector(filter, { dispose: true, time: TWO_WEEKS_MS });
+  
+  collector.on('collect', update({ partySize }));
+  collector.on('remove', update({ partySize }));
+
+  return collector;
+}
+
+const createQueueEmbed = async ({ message, title = 'Queue', date = new Date(Date.now()), partySize = 0 }) => {  
+  const color = partySize > 0 ? QUEUE_START_COLOR : QUEUE_END_COLOR;
+  const description = `${toEasternDate(date)}\n${toCentralEuropeanDate(date)}`;
+  const author = message.author;
+  const timestamp = message.createdTimestamp;
+
+  const embed = defaultEmbed({ color, title, description, author, timestamp });
   const embedMessage = await message.embed(embed);
 
-  const filter = (reaction) => EMOJIS.includes(reaction.emoji.name);
-  const collector = embedMessage.createReactionCollector(filter, { dispose: true, time: TWO_WEEKS_MS });
-  
-  collector.on('collect', (reaction, user) => {
-    if (user.bot)
-      return;
-
-    reaction.message.edit('', { embed: updateEmbed({ embed, reactions: embedMessage.reactions.cache, partySize }) });
-  });
-
-  collector.on('remove', (reaction, user) => {
-    if (user.bot)
-      return;
-
-    reaction.message.edit('', { embed: updateEmbed({ embed, reactions: embedMessage.reactions.cache, partySize }) });
-  });
+  startReactionCollector({ message: embedMessage, partySize });
 
   await embedMessage.react(C);
   await embedMessage.react(S);
@@ -97,5 +114,6 @@ const createQueueEmbed = async ({ message, title = 'Queue', date = new Date(Date
 }
 
 module.exports = {
-  createQueueEmbed: createQueueEmbed
+  createQueueEmbed,
+  startReactionCollector
 }
