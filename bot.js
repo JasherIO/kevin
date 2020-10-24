@@ -33,7 +33,7 @@ client.registry
   .registerCommandsIn(path.join(__dirname, 'commands'));
 
 client.setProvider(
-    sqlite.open(path.join(__dirname, 'settings.sqlite3')).then(db => new SQLiteProvider(db))
+  sqlite.open(path.join(__dirname, 'settings.sqlite3')).then(db => new SQLiteProvider(db))
 ).catch(console.error);
 
 client.login(process.env.TOKEN);
