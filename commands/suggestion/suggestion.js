@@ -26,7 +26,7 @@ module.exports = class SuggestionCommand extends Command {
     const { topic } = args;
 
     const embed = {
-      title: topic,
+      description: topic,
       footer: { 
         text: `${message.author.username}`, 
         iconURL: message.author.avatarURL() 
