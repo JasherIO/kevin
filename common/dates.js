@@ -6,6 +6,7 @@ const options = {
   minute: 'numeric',
   timeZoneName: 'short'
 };
+
 const easternOptions = { ...options, timeZone: 'America/New_York' };
 const toEasternDate = (date) => {
   return date.toLocaleString('en-US', easternOptions);

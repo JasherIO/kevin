@@ -1,39 +1,29 @@
-const { Client, SQLiteProvider } = require('discord.js-commando');
+const { Client } = require('discord.js-commando');
 const path = require('path');
-const sqlite = require('sqlite');
-const DatetimeArgumentType = require('./types/datetime')
+const { provider } = require('./provider/index');
+const { DatetimeArgumentType } = require('./types');
+const { onMessageReactionAdd, onMessageReactionRemove } = require('./reactions');
 
-require('dotenv').config()
-
-const autoReplies = {
-  bing: { pattern: /(^|\s+)bing($|\s+)/im, response: "`Bong!`" }
-}
+require('dotenv').config({ path: `./.env.${process.env.NODE_ENV}` });
 
 const client = new Client({
-	owner: process.env.OWNER_ID
+  owner: process.env.OWNER_ID,
+  partials: [ 'CHANNEL', 'MESSAGE', 'REACTION' ]
 });
 
-client.on('message', message => {
-  if (message.author.bot)
-    return;
-
-  Object.keys(autoReplies).forEach((key) => {
-    const regex = new RegExp(autoReplies[key].pattern);
-    if (!regex.test(message.content))
-      return;
-
-    message.channel.send(autoReplies[key].response);
-  })
-})
-
 client.registry
-  .registerGroups([ ['queue', 'Queue'], ['fun', 'Fun'] ])
+  .registerGroups([ ['queue', 'Queue'], ['suggestion', 'Suggestion'], ['fun', 'Fun'] ])
   .registerDefaults()
   .registerType(DatetimeArgumentType)
   .registerCommandsIn(path.join(__dirname, 'commands'));
 
-client.setProvider(
-  sqlite.open(path.join(__dirname, 'settings.sqlite3')).then(db => new SQLiteProvider(db))
-).catch(console.error);
+client.on('messageReactionAdd', onMessageReactionAdd);
+client.on('messageReactionRemove', onMessageReactionRemove);
 
-client.login(process.env.TOKEN);
+client
+  .setProvider(provider)
+  .catch(console.error);
+
+client
+  .login(process.env.TOKEN)
+  .catch(console.error);

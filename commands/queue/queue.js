@@ -1,9 +1,9 @@
-// !q [title] [time] [partySize]
-// !rocketleague [time]
-// !amongus [time]
-
 const { Command } = require('discord.js-commando');
-const { createQueueEmbed } = require("../../common/createQueueEmbed");
+const {
+  dates: { toCentralEuropeanDate, toEasternDate },
+  colors: { QUEUE_START_COLOR, QUEUE_END_COLOR },
+  emojis: { C, S }
+} = require('../../common');
 
 module.exports = class QueueCommand extends Command {
 	constructor(client) {
@@ -14,7 +14,7 @@ module.exports = class QueueCommand extends Command {
 			memberName: 'queue',
 			description: 'Create a queue.',
 			details: 'Create a queue.',
-      examples: ['`!q`', '`!queue`', '`!queue "DnD" "today 5PM EDT" 5`'],
+      examples: ['!q', '!queue', '!queue "DnD" "today 5PM EDT" 5'],
       guildOnly: true,
       args: [
         {
@@ -24,9 +24,9 @@ module.exports = class QueueCommand extends Command {
 					type: 'string'
         },
         {
-          key: 'time',
+          key: 'date',
           prompt: 'When?',
-          default: '',
+          default: new Date(),
 					type: 'datetime'
         },
         {
@@ -40,10 +40,59 @@ module.exports = class QueueCommand extends Command {
 	}
 
 	async run(message, args) {
-    const title = args.title || 'Queue';
-    const time = args.time || new Date(Date.now());
-    const partySize = args.partySize || 0;
+    const { 
+      author, 
+      createdTimestamp: timestamp,
+      guild,
+      client: { provider }
+    } = message;
+    const { title, date, partySize } = args;
 
-    return createQueueEmbed({ message, title, date: time, partySize });
+    const color = partySize > 0 ? QUEUE_START_COLOR : QUEUE_END_COLOR;
+    const description = `${toEasternDate(date)}\n${toCentralEuropeanDate(date)}`;
+
+    const embed = {
+      color,
+      title,
+      description,    
+      footer: { 
+        text: `${author.username}`, 
+        iconURL: author.avatarURL() 
+      },
+      timestamp,
+      fields: [
+        {
+          name: 'Confirmed (0)',
+          value: 'None',
+          inline: false
+        },
+        {
+          name: 'Standby (0)',
+          value: 'None',
+          inline: false
+        }
+      ]
+    }
+
+    const m = await message.embed(embed);
+    await m.react(C);
+    await m.react(S);
+
+    const action = {
+      type: 'QUEUE',
+      payload: {
+        embed,
+        message: {
+          id: m.id
+        },
+        partySize
+      }
+    }
+
+    const reactions = provider.get(guild, 'reactions', {});
+    reactions[m.id] = action;
+    provider.set(guild, 'reactions', reactions)
+
+    return m;
 	}
 };

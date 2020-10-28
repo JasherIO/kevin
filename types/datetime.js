@@ -16,4 +16,6 @@ class DatetimeArgumentType extends ArgumentType {
 	}
 }
 
-module.exports = DatetimeArgumentType;
+module.exports = {
+	DatetimeArgumentType
+};

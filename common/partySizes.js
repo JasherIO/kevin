@@ -1,4 +1,0 @@
-module.exports = {
-  AMONG_US_PARTY_SIZE: 8,
-  ROCKET_LEAGUE_PARTY_SIZE: 3
-}
