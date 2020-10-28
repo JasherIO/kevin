@@ -4,7 +4,8 @@
   "description": "RLC & Friends queue and role reactions",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js",
+    "dev": "NODE_ENV=development node bot.js",
+    "start": "NODE_ENV=production node bot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Joshua C. Willis",
