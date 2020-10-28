@@ -109,3 +109,5 @@ dist
 # Discord.js files
 auth.js
 settings.sqlite3
+.env.development
+.env.production
