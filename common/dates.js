@@ -7,6 +7,11 @@ const options = {
   timeZoneName: 'short'
 };
 
+const westernOptions = { ...options, timeZone: 'America/Los_Angeles' };
+const toWesternDate = (date) => {
+  return date.toLocaleString('en-US', westernOptions);
+}
+
 const easternOptions = { ...options, timeZone: 'America/New_York' };
 const toEasternDate = (date) => {
   return date.toLocaleString('en-US', easternOptions);
@@ -18,6 +23,7 @@ const toCentralEuropeanDate = (date) => {
 }
 
 module.exports = {
-  toEasternDate: toEasternDate,
-  toCentralEuropeanDate: toCentralEuropeanDate
+  toWesternDate,
+  toEasternDate,
+  toCentralEuropeanDate
 }
