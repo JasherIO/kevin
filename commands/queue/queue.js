@@ -1,6 +1,6 @@
 const { Command } = require('discord.js-commando');
 const {
-  dates: { toCentralEuropeanDate, toEasternDate },
+  dates: { toCentralEuropeanDate, toEasternDate, toWesternDate },
   colors: { QUEUE_START_COLOR, QUEUE_END_COLOR },
   emojis: { C, S }
 } = require('../../common');
@@ -49,7 +49,7 @@ module.exports = class QueueCommand extends Command {
     const { title, date, partySize } = args;
 
     const color = partySize > 0 ? QUEUE_START_COLOR : QUEUE_END_COLOR;
-    const description = `${toEasternDate(date)}\n${toCentralEuropeanDate(date)}`;
+    const description = `${toWesternDate(date)}\n${toEasternDate(date)}\n${toCentralEuropeanDate(date)}`;
 
     const embed = {
       color,
