@@ -7,12 +7,14 @@ class DatetimeArgumentType extends ArgumentType {
 	}
 
 	validate(val) {
-    const datetime = chrono.parseDate(val);
+		const current = new Date();
+		const datetime = chrono.parseDate(val, current, { forwardDate: true });
     return !datetime ? false : true;
 	}
 
 	parse(val) {
-    return chrono.parseDate(val);
+		const current = new Date();
+		return chrono.parseDate(val, current, { forwardDate: true });
 	}
 }
 
